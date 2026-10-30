@@ -1,0 +1,208 @@
+// Bhasha Setu (भाषा सेतु) — Prisma Schema for PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String               @id @default("usr_zen_pioneer_01")
+  name                 String               @default("Hindi Explorer")
+  title                String               @default("Level 3 • Setu Spoken Pioneer")
+  avatarUrl            String?
+  xp                   Int                  @default(480)
+  streak               Int                  @default(7)
+  currentLevelId       String               @default("LEVEL_3")
+  isGoldenDiyaUnlocked Boolean              @default(true)
+  isSilentMode         Boolean              @default(false)
+  isAudioMuted         Boolean              @default(false)
+  playbackSpeed        Float                @default(1.0)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  artifacts            UserArtifact[]
+  levelProgress        UserLevelProgress[]
+  drillAttempts        UserDrillAttempt[]
+  chatMessages         ChatMessage[]
+  practiceStreaks      PracticeStreak[]
+
+  @@map("users")
+}
+
+model QuestStage {
+  id          String   @id @default(uuid())
+  stageNumber Int      @unique
+  name        String
+  subtitle    String
+  description String
+  isCompleted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("quest_stages")
+}
+
+model QuestLevel {
+  id            String              @id
+  levelNumber   Int                 @unique
+  slug          String              @unique
+  title         String
+  subtitle      String
+  tagOverline   String
+  icon          String
+  route         String
+  defaultStatus String              @default("locked") // "mastered" | "active" | "locked"
+  xpReward      Int                 @default(20)
+  ctaLabel      String?
+  isIndented    Boolean             @default(false)
+  orderIndex    Int                 @default(0)
+  totalStars    Int                 @default(3)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  drills        Drill[]
+  userProgress  UserLevelProgress[]
+
+  @@map("quest_levels")
+}
+
+model Drill {
+  id                 String             @id
+  levelId            String
+  drillType          String             // "BOLLYWOOD" | "CRICKET" | "STREET_FOOD" | "NANI_BOSS"
+  title              String
+  categoryOverline   String             @default("ACTIVE RECALL DRILL")
+  scenario           String
+  hindiPrompt        String
+  englishTranslation String
+  romanPrompt        String?
+  targetWord         String?
+  phoneticHint       String?
+  audioClipId        String?
+  defaultSpeed       Float              @default(1.0)
+  audioDuration      String?
+  xpAward            Int                @default(20)
+  comboMultiplier    Int                @default(2)
+  metadata           Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  level              QuestLevel         @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  attempts           UserDrillAttempt[]
+
+  @@map("drills")
+}
+
+model Artifact {
+  id              String         @id
+  slug            String         @unique
+  name            String
+  icon            String
+  levelName       String
+  description     String
+  bonus           String
+  unlockCondition String
+  orderIndex      Int            @default(0)
+  createdAt       DateTime       @default(now())
+
+  userArtifacts   UserArtifact[]
+
+  @@map("artifacts")
+}
+
+model UserArtifact {
+  id         String   @id @default(uuid())
+  userId     String
+  artifactId String
+  unlockedAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artifact   Artifact @relation(fields: [artifactId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, artifactId])
+  @@map("user_artifacts")
+}
+
+model UserLevelProgress {
+  id          String     @id @default(uuid())
+  userId      String
+  levelId     String
+  stars       Int        @default(0)
+  status      String     @default("locked") // "mastered" | "active" | "locked"
+  completedAt DateTime?
+  score       Int        @default(0)
+  updatedAt   DateTime   @updatedAt
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level       QuestLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, levelId])
+  @@map("user_level_progress")
+}
+
+model UserDrillAttempt {
+  id              String   @id @default(uuid())
+  userId          String
+  drillId         String
+  userInput       String
+  isCorrect       Boolean
+  score           Int      @default(0)
+  xpAwarded       Int      @default(0)
+  feedbackHindi   String
+  feedbackEnglish String
+  attemptType     String   @default("TYPING") // "TYPING" | "VOICE" | "SILENT"
+  decibels        Float?
+  pitchHz         Float?
+  respectMarker   String?
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drill           Drill    @relation(fields: [drillId], references: [id], onDelete: Cascade)
+
+  @@map("user_drill_attempts")
+}
+
+model ChatMessage {
+  id             String   @id
+  userId         String
+  sender         String   // "nani" | "user"
+  hindiText      String
+  englishSubtext String
+  duration       String   @default("0:04")
+  timestamp      String   @default("10:15 AM")
+  fluencyScore   Int?
+  respectWord    String?
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model PracticeStreak {
+  id          String   @id @default(uuid())
+  userId      String
+  dayLabel    String   // 'M', 'T', 'W', 'T', 'F', 'S', 'S'
+  dayIndex    Int      // 0-6
+  date        DateTime @default(now())
+  isCompleted Boolean  @default(true)
+  xpGained    Int      @default(0)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("practice_streaks")
+}
+
+model CulturalMilestone {
+  id                 String   @id
+  title              String
+  description        String
+  requiredLevelId    String?
+  requiredArtifactId String?
+  orderIndex         Int      @default(0)
+
+  @@map("cultural_milestones")
+}
+

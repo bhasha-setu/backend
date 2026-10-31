@@ -9,6 +9,8 @@ export const APP_CONSTANTS = {
   GOLDEN_DIYA_FLUENCY_THRESHOLD: Number(process.env.GOLDEN_DIYA_FLUENCY_THRESHOLD) || 85,
   COMBO_MULTIPLIER: Number(process.env.COMBO_MULTIPLIER) || 2,
   API_PREFIX: '/api',
+  AI_AGENT_URL: process.env.AI_AGENT_URL || 'http://localhost:8000',
+  AI_AGENT_TIMEOUT_MS: 800,
 } as const;
 
 export const HTTP_STATUS = {
